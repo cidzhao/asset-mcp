@@ -1,10 +1,12 @@
 from urllib.parse import urlparse
 
 import httpx
+import pandas as pd
 import pytest
 
 from asset_mcp.config import parse_config
 from asset_mcp.providers.binance import BinanceProvider
+from asset_mcp.providers.moomoo import MoomooProvider
 from asset_mcp.providers.okx import OkxProvider
 
 
@@ -106,6 +108,48 @@ def test_okx_provider_keeps_trading_and_funding_balances_separate():
     assert by_symbol_wallet[("BTC", "funding")].rawSource == "funding_balance"
     assert by_symbol_wallet[("USDT", "trading")].valueUsd == 50
     assert by_symbol_wallet[("ETH", "funding")].valueUsd == 3000
+
+
+def test_moomoo_provider_uses_cash_by_real_currency_before_summary_currency():
+    config = parse_config(
+        {
+            "rates": {"USD": 1, "HKD": 0.128},
+            "brokers": {
+                "moomoo": {
+                    "accounts": [
+                        {
+                            "id": "moomoo-sg",
+                            "label": "moomoo Singapore",
+                            "trdMarket": "SG",
+                            "securityFirm": "FUTUSG",
+                        }
+                    ]
+                }
+            },
+        }
+    )
+    provider = MoomooProvider(config)
+
+    assets = provider._assets_from_frames(
+        config.moomooAccounts[0],
+        pd.DataFrame(
+            [
+                {
+                    "currency": "HKD",
+                    "cash": 36488.49,
+                    "us_cash": 4657.63,
+                    "hk_cash": 0.0,
+                }
+            ]
+        ),
+        pd.DataFrame([]),
+    )
+
+    assert len(assets) == 1
+    assert assets[0].symbol == "USD"
+    assert assets[0].quantity == 4657.63
+    assert assets[0].valueUsd == 4657.63
+    assert assets[0].rawSource == "opend_accinfo_cash_by_currency"
 
 
 @pytest.mark.asyncio

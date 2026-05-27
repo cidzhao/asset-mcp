@@ -6,6 +6,17 @@ from asset_mcp.config import AppConfig, MoomooAccountConfig
 from asset_mcp.models import AccountStatus, Asset, utc_now_iso
 from asset_mcp.providers.base import AssetProvider
 
+CASH_COLUMNS = {
+    "hk_cash": "HKD",
+    "us_cash": "USD",
+    "cn_cash": "CNH",
+    "jp_cash": "JPY",
+    "sg_cash": "SGD",
+    "au_cash": "AUD",
+    "ca_cash": "CAD",
+    "my_cash": "MYR",
+}
+
 
 class MoomooProvider(AssetProvider):
     def __init__(self, config: AppConfig):
@@ -45,10 +56,10 @@ class MoomooProvider(AssetProvider):
         try:
             ret, accinfo = trd_ctx.accinfo_query(acc_id=account.accountId or 0)
             if ret != futu.RET_OK:
-                raise RuntimeError("moomoo accinfo_query failed")
+                raise RuntimeError(f"moomoo accinfo_query failed: {accinfo}")
             ret, positions = trd_ctx.position_list_query(acc_id=account.accountId or 0)
             if ret != futu.RET_OK:
-                raise RuntimeError("moomoo position_list_query failed")
+                raise RuntimeError(f"moomoo position_list_query failed: {positions}")
             return self._assets_from_frames(account, accinfo, positions)
         finally:
             trd_ctx.close()
@@ -62,9 +73,9 @@ class MoomooProvider(AssetProvider):
             security_firm=self._security_firm(futu, account.securityFirm),
         )
         try:
-            ret, _accinfo = trd_ctx.accinfo_query(acc_id=account.accountId or 0)
+            ret, accinfo = trd_ctx.accinfo_query(acc_id=account.accountId or 0)
             if ret != futu.RET_OK:
-                raise RuntimeError("moomoo accinfo_query failed")
+                raise RuntimeError(f"moomoo accinfo_query failed: {accinfo}")
         finally:
             trd_ctx.close()
 
@@ -73,27 +84,7 @@ class MoomooProvider(AssetProvider):
         assets: list[Asset] = []
         if len(accinfo) > 0:
             row = accinfo.iloc[0]
-            cash = float(row.get("cash", 0) or 0)
-            currency = str(row.get("currency", "USD") or "USD").upper()
-            if cash > 0:
-                rate = self.config.rates.get(currency, 1.0 if currency == "USD" else 0.0)
-                value = round(cash * rate, 8)
-                assets.append(
-                    Asset(
-                        source="moomoo",
-                        accountId=account.id,
-                        accountLabel=account.label,
-                        category="cash",
-                        symbol=currency,
-                        name="Cash",
-                        quantity=cash,
-                        currency=currency,
-                        unitPriceUsd=round(rate, 8),
-                        valueUsd=value,
-                        updatedAt=now,
-                        rawSource="opend_accinfo",
-                    )
-                )
+            assets.extend(self._cash_assets_from_accinfo(account, row, now))
 
         for _, row in positions.iterrows():
             code = str(row.get("code", "")).upper()
@@ -122,15 +113,78 @@ class MoomooProvider(AssetProvider):
             )
         return assets
 
+    def _cash_assets_from_accinfo(
+        self,
+        account: MoomooAccountConfig,
+        row: Any,
+        updated_at: str,
+    ) -> list[Asset]:
+        assets = [
+            asset
+            for column, currency in CASH_COLUMNS.items()
+            if (asset := self._cash_asset(account, row.get(column, 0), currency, updated_at)) is not None
+        ]
+        if assets:
+            return assets
+
+        currency = str(row.get("currency", "USD") or "USD").upper()
+        asset = self._cash_asset(account, row.get("cash", 0), currency, updated_at)
+        return [asset] if asset is not None else []
+
+    def _cash_asset(
+        self,
+        account: MoomooAccountConfig,
+        quantity_raw: Any,
+        currency: str,
+        updated_at: str,
+    ) -> Asset | None:
+        try:
+            quantity = float(quantity_raw or 0)
+        except (TypeError, ValueError):
+            return None
+        if quantity <= 0:
+            return None
+        rate = self.config.rates.get(currency, 1.0 if currency == "USD" else 0.0)
+        value = round(quantity * rate, 8)
+        if value <= 0:
+            return None
+        return Asset(
+            source="moomoo",
+            accountId=account.id,
+            accountLabel=account.label,
+            category="cash",
+            symbol=currency,
+            name="Cash",
+            quantity=quantity,
+            currency=currency,
+            unitPriceUsd=round(rate, 8),
+            valueUsd=value,
+            updatedAt=updated_at,
+            rawSource="opend_accinfo_cash_by_currency",
+        )
+
     def _import_futu(self):
         try:
-            import futu  # type: ignore
-        except ImportError as exc:
-            raise RuntimeError("Install moomoo support with: uv sync --extra moomoo") from exc
-        return futu
+            import moomoo as futu  # type: ignore
+        except ImportError:
+            try:
+                import futu  # type: ignore
+            except ImportError as exc:
+                raise RuntimeError(
+                    "Install moomoo support with: pip install moomoo-api"
+                ) from exc
+        try:
+            getattr(futu.SecurityFirm, "FUTUSG")
+            return futu
+        except AttributeError:
+            return futu
 
     def _trd_market(self, futu, value: str):
-        return getattr(futu.TrdMarket, value.upper(), futu.TrdMarket.US)
+        if not hasattr(futu.TrdMarket, value.upper()):
+            raise RuntimeError(f"Unsupported moomoo trdMarket: {value}")
+        return getattr(futu.TrdMarket, value.upper())
 
     def _security_firm(self, futu, value: str):
-        return getattr(futu.SecurityFirm, value, futu.SecurityFirm.FUTUSECURITIES)
+        if not hasattr(futu.SecurityFirm, value):
+            raise RuntimeError(f"Unsupported moomoo securityFirm: {value}")
+        return getattr(futu.SecurityFirm, value)
