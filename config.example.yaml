@@ -1,0 +1,74 @@
+baseCurrency: USD
+
+rates:
+  USD: 1
+  USDT: 1
+  CNY: 0.138
+  HKD: 0.128
+  SGD: 0.74
+
+exchanges:
+  binance:
+    accounts:
+      - id: binance-main
+        label: Binance Main
+        enabled: false
+        environment: production
+        apiKey: "replace-with-read-only-key"
+        apiSecret: "replace-with-read-only-secret"
+
+  okx:
+    accounts:
+      - id: okx-main
+        label: OKX Main
+        enabled: false
+        environment: production
+        domain: https://www.okx.com
+        apiKey: "replace-with-read-only-key"
+        apiSecret: "replace-with-read-only-secret"
+        passphrase: "replace-with-passphrase"
+
+brokers:
+  moomoo:
+    accounts:
+      - id: moomoo-us
+        label: moomoo US
+        enabled: false
+        host: 127.0.0.1
+        port: 11111
+        trdMarket: US
+        securityFirm: FUTUSECURITIES
+        accountId: null
+
+manual:
+  accounts:
+    - id: alipay-main
+      label: Alipay
+      enabled: true
+      category: cash
+      assets:
+        - symbol: CNY
+          name: Yu'e Bao
+          quantity: 10000
+          currency: CNY
+          unitPriceUsd: null
+    - id: bank-cmb
+      label: China Merchants Bank
+      enabled: true
+      category: cash
+      assets:
+        - symbol: CNY
+          name: Checking
+          quantity: 50000
+          currency: CNY
+          unitPriceUsd: null
+    - id: property-home
+      label: Property
+      enabled: true
+      category: manual
+      assets:
+        - symbol: HOME
+          name: Home equity estimate
+          quantity: 1
+          currency: CNY
+          unitPriceUsd: 200000
