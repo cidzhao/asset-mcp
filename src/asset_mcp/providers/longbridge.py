@@ -6,6 +6,7 @@ from typing import Any
 from asset_mcp.config import AppConfig, LongbridgeAccountConfig
 from asset_mcp.models import AccountStatus, Asset, utc_now_iso
 from asset_mcp.providers.base import AssetProvider
+from asset_mcp.providers.stdio import redirect_sdk_stdout
 
 
 class LongbridgeProvider(AssetProvider):
@@ -41,12 +42,13 @@ class LongbridgeProvider(AssetProvider):
                         )
                     )
                     continue
-                sdk = self._import_sdk()
-                trade_ctx = self._trade_context(sdk, account)
-                try:
-                    trade_ctx.account_balance()
-                finally:
-                    self._close_context(trade_ctx)
+                with redirect_sdk_stdout():
+                    sdk = self._import_sdk()
+                    trade_ctx = self._trade_context(sdk, account)
+                    try:
+                        trade_ctx.account_balance()
+                    finally:
+                        self._close_context(trade_ctx)
                 statuses.append(
                     AccountStatus("longbridge", account.id, account.label, True, True, "ok")
                 )
@@ -64,22 +66,23 @@ class LongbridgeProvider(AssetProvider):
         return statuses
 
     def _fetch_account_assets(self, account: LongbridgeAccountConfig) -> list[Asset]:
-        sdk = self._import_sdk()
-        trade_ctx = self._trade_context(sdk, account)
-        quote_ctx = None
-        try:
-            balances = trade_ctx.account_balance()
-            positions = trade_ctx.stock_positions()
-            symbols = self._position_symbols(positions)
-            quote_prices: dict[str, float] = {}
-            if symbols:
-                quote_ctx = self._quote_context(sdk, account)
-                quote_prices = self._quote_prices(quote_ctx, symbols)
-            return self._assets_from_account_data(account, balances, positions, quote_prices)
-        finally:
-            self._close_context(trade_ctx)
-            if quote_ctx is not None:
-                self._close_context(quote_ctx)
+        with redirect_sdk_stdout():
+            sdk = self._import_sdk()
+            trade_ctx = self._trade_context(sdk, account)
+            quote_ctx = None
+            try:
+                balances = trade_ctx.account_balance()
+                positions = trade_ctx.stock_positions()
+                symbols = self._position_symbols(positions)
+                quote_prices: dict[str, float] = {}
+                if symbols:
+                    quote_ctx = self._quote_context(sdk, account)
+                    quote_prices = self._quote_prices(quote_ctx, symbols)
+                return self._assets_from_account_data(account, balances, positions, quote_prices)
+            finally:
+                self._close_context(trade_ctx)
+                if quote_ctx is not None:
+                    self._close_context(quote_ctx)
 
     def _assets_from_account_data(
         self,

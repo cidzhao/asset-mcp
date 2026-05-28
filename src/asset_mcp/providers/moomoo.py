@@ -5,6 +5,7 @@ from typing import Any
 from asset_mcp.config import AppConfig, MoomooAccountConfig
 from asset_mcp.models import AccountStatus, Asset, utc_now_iso
 from asset_mcp.providers.base import AssetProvider
+from asset_mcp.providers.stdio import redirect_sdk_stdout
 
 CASH_COLUMNS = {
     "hk_cash": "HKD",
@@ -46,38 +47,40 @@ class MoomooProvider(AssetProvider):
         return statuses
 
     def _fetch_account_assets(self, account: MoomooAccountConfig) -> list[Asset]:
-        futu = self._import_futu()
-        trd_ctx = futu.OpenSecTradeContext(
-            filter_trdmarket=self._trd_market(futu, account.trdMarket),
-            host=account.host,
-            port=account.port,
-            security_firm=self._security_firm(futu, account.securityFirm),
-        )
-        try:
-            ret, accinfo = trd_ctx.accinfo_query(acc_id=account.accountId or 0)
-            if ret != futu.RET_OK:
-                raise RuntimeError(f"moomoo accinfo_query failed: {accinfo}")
-            ret, positions = trd_ctx.position_list_query(acc_id=account.accountId or 0)
-            if ret != futu.RET_OK:
-                raise RuntimeError(f"moomoo position_list_query failed: {positions}")
-            return self._assets_from_frames(account, accinfo, positions)
-        finally:
-            trd_ctx.close()
+        with redirect_sdk_stdout():
+            futu = self._import_futu()
+            trd_ctx = futu.OpenSecTradeContext(
+                filter_trdmarket=self._trd_market(futu, account.trdMarket),
+                host=account.host,
+                port=account.port,
+                security_firm=self._security_firm(futu, account.securityFirm),
+            )
+            try:
+                ret, accinfo = trd_ctx.accinfo_query(acc_id=account.accountId or 0)
+                if ret != futu.RET_OK:
+                    raise RuntimeError(f"moomoo accinfo_query failed: {accinfo}")
+                ret, positions = trd_ctx.position_list_query(acc_id=account.accountId or 0)
+                if ret != futu.RET_OK:
+                    raise RuntimeError(f"moomoo position_list_query failed: {positions}")
+                return self._assets_from_frames(account, accinfo, positions)
+            finally:
+                trd_ctx.close()
 
     def _check_account_connection(self, account: MoomooAccountConfig) -> None:
-        futu = self._import_futu()
-        trd_ctx = futu.OpenSecTradeContext(
-            filter_trdmarket=self._trd_market(futu, account.trdMarket),
-            host=account.host,
-            port=account.port,
-            security_firm=self._security_firm(futu, account.securityFirm),
-        )
-        try:
-            ret, accinfo = trd_ctx.accinfo_query(acc_id=account.accountId or 0)
-            if ret != futu.RET_OK:
-                raise RuntimeError(f"moomoo accinfo_query failed: {accinfo}")
-        finally:
-            trd_ctx.close()
+        with redirect_sdk_stdout():
+            futu = self._import_futu()
+            trd_ctx = futu.OpenSecTradeContext(
+                filter_trdmarket=self._trd_market(futu, account.trdMarket),
+                host=account.host,
+                port=account.port,
+                security_firm=self._security_firm(futu, account.securityFirm),
+            )
+            try:
+                ret, accinfo = trd_ctx.accinfo_query(acc_id=account.accountId or 0)
+                if ret != futu.RET_OK:
+                    raise RuntimeError(f"moomoo accinfo_query failed: {accinfo}")
+            finally:
+                trd_ctx.close()
 
     def _assets_from_frames(self, account: MoomooAccountConfig, accinfo: Any, positions: Any) -> list[Asset]:
         now = utc_now_iso()
