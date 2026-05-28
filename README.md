@@ -62,75 +62,15 @@ cp config.example.yaml config.local.yaml
 `config.local.yaml` is ignored by git. Keep real API keys and personal balances
 only in that file.
 
-The config supports multiple accounts per source:
-
-```yaml
-exchanges:
-  binance:
-    accounts:
-      - id: binance-main
-        label: Binance Main
-        enabled: true
-        environment: production
-        apiKey: "read-only-key"
-        apiSecret: "read-only-secret"
-
-  okx:
-    accounts:
-      - id: okx-main
-        label: OKX Main
-        enabled: true
-        domain: https://www.okx.com
-        apiKey: "read-only-key"
-        apiSecret: "read-only-secret"
-        passphrase: "api-passphrase"
-
-brokers:
-  moomoo:
-    accounts:
-      - id: moomoo-us
-        label: moomoo US
-        enabled: true
-        host: 127.0.0.1
-        port: 11111
-        trdMarket: US
-        securityFirm: FUTUSECURITIES
-
-  longbridge:
-    accounts:
-      - id: longbridge-main
-        label: Longbridge Main
-        enabled: true
-        appKey: "longbridge-app-key"
-        appSecret: "longbridge-app-secret"
-        accessToken: "longbridge-access-token"
-
-manual:
-  accounts:
-    - id: bank-cmb
-      label: China Merchants Bank
-      enabled: true
-      category: cash
-      assets:
-        - symbol: CNY
-          name: Checking
-          quantity: 50000
-          currency: CNY
-```
+Use `config.example.yaml` as the source of truth for supported config fields.
+Copy it to `config.local.yaml`, then edit account credentials, enabled flags,
+manual assets, and currency rates as needed.
 
 Each account `id` must be unique and stable. This id appears in MCP responses
 and is used for filtering.
 
-For manual assets in non-USD currencies, add rates under `rates`:
-
-```yaml
-rates:
-  USD: 1
-  USDT: 1
-  CNY: 0.138
-  HKD: 0.128
-  SGD: 0.74
-```
+For manual assets in non-USD currencies, configure rates under `rates` in
+`config.local.yaml`.
 
 ## Run the MCP Server
 
@@ -199,6 +139,26 @@ Run the server locally against the example config:
 ```bash
 ASSET_MCP_CONFIG=config.example.yaml uv run asset-mcp
 ```
+
+### Provider stdout hygiene
+
+The MCP server uses stdio transport, so `stdout` is reserved for JSON-RPC
+protocol frames. Any banner, warning, permission table, progress line, or native
+SDK log written to `stdout` can corrupt the MCP stream and surface in clients as
+`Transport closed`.
+
+When adding a new broker or exchange provider:
+
+- Wrap all third-party SDK calls with
+  `asset_mcp.providers.stdio.redirect_sdk_stdout()`.
+- Assume SDKs may bypass `print()` and write directly to file descriptor 1 from
+  native code or background threads; `contextlib.redirect_stdout()` alone is not
+  enough.
+- Exercise every network/API path, not only health checks. Quote/market-data
+  endpoints often emit permission tables even when account-balance endpoints are
+  quiet.
+- Add a regression test using `capfd` and `os.write(1, ...)` to prove provider
+  calls leave `stdout` empty.
 
 ## Security Notes
 
