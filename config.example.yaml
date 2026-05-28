@@ -73,7 +73,6 @@ manual:
           name: Yu'e Bao
           quantity: 10000
           currency: CNY
-          unitPriceUsd: null
     - id: bank-cmb
       label: China Merchants Bank
       enabled: true
@@ -83,7 +82,6 @@ manual:
           name: Checking
           quantity: 50000
           currency: CNY
-          unitPriceUsd: null
     - id: property-home
       label: Property
       enabled: true
@@ -91,6 +89,5 @@ manual:
       assets:
         - symbol: HOME
           name: Home equity estimate
-          quantity: 1
+          quantity: 2000000
           currency: CNY
-          unitPriceUsd: 200000

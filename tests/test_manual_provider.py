@@ -21,14 +21,7 @@ async def test_manual_provider_converts_assets_with_configured_rates():
                         "id": "property-home",
                         "label": "Property",
                         "category": "manual",
-                        "assets": [
-                            {
-                                "symbol": "HOME",
-                                "quantity": 1,
-                                "currency": "CNY",
-                                "unitPriceUsd": 200000,
-                            }
-                        ],
+                        "assets": [{"symbol": "HOME", "quantity": 200000, "currency": "USD"}],
                     },
                     {
                         "id": "disabled",

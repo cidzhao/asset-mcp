@@ -72,7 +72,8 @@ Each account `id` must be unique and stable. This id appears in MCP responses
 and is used for filtering.
 
 For manual assets in non-USD currencies, configure rates under `rates` in
-`config.local.yaml`.
+`config.local.yaml`. Manual asset USD values are calculated as
+`quantity * rates[currency]`.
 
 ## Run the MCP Server
 

@@ -19,9 +19,7 @@ class ManualProvider(AssetProvider):
                 continue
             category = account.category if account.category in VALID_MANUAL_CATEGORIES else "manual"
             for item in account.assets:
-                unit_price_usd = item.unitPriceUsd
-                if unit_price_usd is None:
-                    unit_price_usd = self._rate_for(item.currency)
+                unit_price_usd = self._rate_for(item.currency)
                 value_usd = round(item.quantity * unit_price_usd, 8)
                 assets.append(
                     Asset(
@@ -50,7 +48,7 @@ class ManualProvider(AssetProvider):
         missing_rates = [
             asset.currency
             for asset in account.assets
-            if asset.unitPriceUsd is None and asset.currency.upper() not in self.config.rates
+            if asset.currency.upper() not in self.config.rates
         ]
         if missing_rates:
             return AccountStatus(

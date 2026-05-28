@@ -89,7 +89,6 @@ class ManualAssetConfig:
     quantity: float
     currency: str
     name: str | None = None
-    unitPriceUsd: float | None = None
 
 
 @dataclass(frozen=True)
@@ -230,7 +229,6 @@ def parse_config(raw: dict[str, Any]) -> AppConfig:
                     name=asset.get("name"),
                     quantity=_as_float(asset.get("quantity", 0), "manual.assets[].quantity"),
                     currency=str(asset.get("currency") or asset.get("symbol")).upper(),
-                    unitPriceUsd=_optional_float(asset.get("unitPriceUsd")),
                 )
                 for asset in item.get("assets", [])
             ],
@@ -298,12 +296,6 @@ def _as_float(value: Any, location: str) -> float:
         return float(value)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"Expected number at {location}.") from exc
-
-
-def _optional_float(value: Any) -> float | None:
-    if value is None:
-        return None
-    return float(value)
 
 
 def _optional_int(value: Any) -> int | None:
