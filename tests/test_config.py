@@ -36,11 +36,25 @@ def test_parse_config_supports_multiple_accounts():
                     }
                 ]
             },
+            "brokers": {
+                "longbridge": {
+                    "accounts": [
+                        {
+                            "id": "longbridge-main",
+                            "label": "Longbridge",
+                            "appKey": "key",
+                            "appSecret": "secret",
+                            "accessToken": "token",
+                        }
+                    ]
+                }
+            },
         }
     )
 
     assert [account.id for account in config.binanceAccounts] == ["binance-main", "binance-sub"]
     assert config.okxAccounts[0].id == "okx-main"
+    assert config.longbridgeAccounts[0].appKey == "key"
     assert config.manualAccounts[0].assets[0].quantity == 100
 
 
@@ -67,6 +81,7 @@ def test_redact_secrets_hides_nested_secret_values():
         {
             "apiKey": "key",
             "nested": {"apiSecret": "secret", "passphrase": "phrase"},
+            "accessToken": "token",
             "label": "visible",
         }
     )
@@ -74,4 +89,5 @@ def test_redact_secrets_hides_nested_secret_values():
     assert redacted["apiKey"] == "***REDACTED***"
     assert redacted["nested"]["apiSecret"] == "***REDACTED***"
     assert redacted["nested"]["passphrase"] == "***REDACTED***"
+    assert redacted["accessToken"] == "***REDACTED***"
     assert redacted["label"] == "visible"

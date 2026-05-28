@@ -6,7 +6,13 @@ from typing import Any
 from asset_mcp.aggregation import build_dashboard_data, build_net_worth, filter_assets
 from asset_mcp.config import AppConfig, load_config
 from asset_mcp.models import AccountStatus, Asset
-from asset_mcp.providers import BinanceProvider, ManualProvider, MoomooProvider, OkxProvider
+from asset_mcp.providers import (
+    BinanceProvider,
+    LongbridgeProvider,
+    ManualProvider,
+    MoomooProvider,
+    OkxProvider,
+)
 from asset_mcp.providers.base import AssetProvider
 
 
@@ -20,7 +26,7 @@ class AssetService:
         accountId: str | None = None,
         category: str | None = None,
     ) -> list[dict[str, Any]]:
-        assets = filter_assets(await self._fetch_all_assets(), source, accountId, category)
+        assets = filter_assets(await self._fetch_all_assets(source=source), source, accountId, category)
         return [asset.to_dict() for asset in assets]
 
     async def get_net_worth(self) -> dict[str, Any]:
@@ -50,10 +56,10 @@ class AssetService:
             "providerErrors": provider_errors,
         }
 
-    async def _fetch_all_assets(self) -> list[Asset]:
+    async def _fetch_all_assets(self, source: str | None = None) -> list[Asset]:
         config = self._config()
         results = await asyncio.gather(
-            *[provider.fetch_assets() for provider in self._providers(config)],
+            *[provider.fetch_assets() for provider in self._providers(config, source=source)],
             return_exceptions=True,
         )
         assets: list[Asset] = []
@@ -71,10 +77,12 @@ class AssetService:
     def _config(self) -> AppConfig:
         return self.config if self.config is not None else load_config()
 
-    def _providers(self, config: AppConfig) -> list[AssetProvider]:
-        return [
-            ManualProvider(config),
-            BinanceProvider(config),
-            OkxProvider(config),
-            MoomooProvider(config),
+    def _providers(self, config: AppConfig, source: str | None = None) -> list[AssetProvider]:
+        providers: list[tuple[str, AssetProvider]] = [
+            ("manual", ManualProvider(config)),
+            ("binance", BinanceProvider(config)),
+            ("okx", OkxProvider(config)),
+            ("moomoo", MoomooProvider(config)),
+            ("longbridge", LongbridgeProvider(config)),
         ]
+        return [provider for provider_source, provider in providers if source in {None, provider_source}]

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 
 AssetCategory = Literal["crypto", "stock", "cash", "manual"]
-AssetSource = Literal["binance", "okx", "moomoo", "manual"]
+AssetSource = Literal["binance", "okx", "moomoo", "longbridge", "manual"]
 
 
 def utc_now_iso() -> str:

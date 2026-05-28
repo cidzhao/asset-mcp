@@ -7,7 +7,18 @@ from typing import Any
 
 import yaml
 
-SECRET_KEYS = {"apikey", "apisecret", "passphrase", "secret", "token", "password"}
+SECRET_KEYS = {
+    "apikey",
+    "apisecret",
+    "appkey",
+    "appsecret",
+    "accesstoken",
+    "clientsecret",
+    "passphrase",
+    "secret",
+    "token",
+    "password",
+}
 
 
 class ConfigError(ValueError):
@@ -49,6 +60,16 @@ class MoomooAccountConfig:
 
 
 @dataclass(frozen=True)
+class LongbridgeAccountConfig:
+    id: str
+    label: str
+    appKey: str = ""
+    appSecret: str = ""
+    accessToken: str = ""
+    enabled: bool = True
+
+
+@dataclass(frozen=True)
 class ManualAssetConfig:
     symbol: str
     quantity: float
@@ -73,6 +94,7 @@ class AppConfig:
     binanceAccounts: list[BinanceAccountConfig] = field(default_factory=list)
     okxAccounts: list[OkxAccountConfig] = field(default_factory=list)
     moomooAccounts: list[MoomooAccountConfig] = field(default_factory=list)
+    longbridgeAccounts: list[LongbridgeAccountConfig] = field(default_factory=list)
     manualAccounts: list[ManualAccountConfig] = field(default_factory=list)
 
 
@@ -145,6 +167,18 @@ def parse_config(raw: dict[str, Any]) -> AppConfig:
         for item in _account_items(brokers, "moomoo")
     ]
 
+    longbridge_accounts = [
+        LongbridgeAccountConfig(
+            id=_required_str(item, "id", "brokers.longbridge.accounts[]"),
+            label=str(item.get("label") or item.get("id")),
+            enabled=bool(item.get("enabled", True)),
+            appKey=str(item.get("appKey", "")),
+            appSecret=str(item.get("appSecret", "")),
+            accessToken=str(item.get("accessToken", "")),
+        )
+        for item in _account_items(brokers, "longbridge")
+    ]
+
     manual_accounts = [
         ManualAccountConfig(
             id=_required_str(item, "id", "manual.accounts[]"),
@@ -171,6 +205,7 @@ def parse_config(raw: dict[str, Any]) -> AppConfig:
         binanceAccounts=binance_accounts,
         okxAccounts=okx_accounts,
         moomooAccounts=moomoo_accounts,
+        longbridgeAccounts=longbridge_accounts,
         manualAccounts=manual_accounts,
     )
     validate_unique_account_ids(config)
@@ -183,6 +218,7 @@ def validate_unique_account_ids(config: AppConfig) -> None:
         ("binance", config.binanceAccounts),
         ("okx", config.okxAccounts),
         ("moomoo", config.moomooAccounts),
+        ("longbridge", config.longbridgeAccounts),
         ("manual", config.manualAccounts),
     ]
     for source, accounts in all_accounts:

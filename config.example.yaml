@@ -40,6 +40,15 @@ brokers:
         securityFirm: FUTUSECURITIES
         accountId: null
 
+  longbridge:
+    accounts:
+      - id: longbridge-main
+        label: Longbridge Main
+        enabled: false
+        appKey: "replace-with-app-key"
+        appSecret: "replace-with-app-secret"
+        accessToken: "replace-with-access-token"
+
 manual:
   accounts:
     - id: alipay-main

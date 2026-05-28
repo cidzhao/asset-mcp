@@ -6,6 +6,7 @@ import pytest
 
 from asset_mcp.config import parse_config
 from asset_mcp.providers.binance import BinanceProvider
+from asset_mcp.providers.longbridge import LongbridgeProvider
 from asset_mcp.providers.moomoo import MoomooProvider
 from asset_mcp.providers.okx import OkxProvider
 
@@ -150,6 +151,91 @@ def test_moomoo_provider_uses_cash_by_real_currency_before_summary_currency():
     assert assets[0].quantity == 4657.63
     assert assets[0].valueUsd == 4657.63
     assert assets[0].rawSource == "opend_accinfo_cash_by_currency"
+
+
+def test_longbridge_provider_converts_cash_and_stock_positions():
+    config = parse_config(
+        {
+            "rates": {"USD": 1, "HKD": 0.128},
+            "brokers": {
+                "longbridge": {
+                    "accounts": [
+                        {
+                            "id": "longbridge-main",
+                            "label": "Longbridge",
+                            "appKey": "key",
+                            "appSecret": "secret",
+                            "accessToken": "token",
+                        }
+                    ]
+                }
+            },
+        }
+    )
+    provider = LongbridgeProvider(config)
+
+    assets = provider._assets_from_account_data(
+        config.longbridgeAccounts[0],
+        {
+            "data": {
+                "list": [
+                    {
+                        "currency": "HKD",
+                        "total_cash": "1000",
+                        "cash_infos": [
+                            {
+                                "currency": "USD",
+                                "available_cash": "100",
+                                "frozen_cash": "10",
+                                "settling_cash": "-5",
+                            },
+                            {
+                                "currency": "HKD",
+                                "available_cash": "780",
+                                "frozen_cash": "20",
+                                "settling_cash": "0",
+                            },
+                        ],
+                    }
+                ]
+            }
+        },
+        {
+            "data": {
+                "channels": [
+                    {
+                        "account_channel": "lb",
+                        "positions": [
+                            {
+                                "symbol": "700.HK",
+                                "symbol_name": "TENCENT",
+                                "currency": "HKD",
+                                "quantity": "2",
+                                "cost_price": "300",
+                            },
+                            {
+                                "symbol": "AAPL.US",
+                                "symbol_name": "Apple",
+                                "currency": "USD",
+                                "quantity": "3",
+                                "cost_price": "150",
+                            },
+                        ],
+                    }
+                ]
+            }
+        },
+        {"700.HK": 400},
+    )
+
+    by_symbol = {asset.symbol: asset for asset in assets}
+    assert by_symbol["USD"].quantity == 105
+    assert by_symbol["USD"].valueUsd == 105
+    assert by_symbol["HKD"].valueUsd == 102.4
+    assert by_symbol["700.HK"].valueUsd == 102.4
+    assert by_symbol["700.HK"].rawSource == "stock_positions_quote"
+    assert by_symbol["AAPL.US"].valueUsd == 450
+    assert by_symbol["AAPL.US"].rawSource == "stock_positions_cost_price"
 
 
 @pytest.mark.asyncio

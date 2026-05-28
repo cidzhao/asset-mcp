@@ -1,7 +1,7 @@
 # Asset MCP
 
 Read-only Python MCP server for aggregating personal assets across Binance, OKX,
-moomoo OpenD, and manually configured accounts.
+moomoo OpenD, Longbridge, and manually configured accounts.
 
 The server exposes normalized asset data to any MCP-compatible AI client. It does
 not trade, transfer, withdraw, or automate bank/Alipay access.
@@ -11,6 +11,7 @@ not trade, transfer, withdraw, or automate bank/Alipay access.
 - Multiple Binance accounts.
 - Multiple OKX accounts.
 - Multiple moomoo/Futu OpenD accounts.
+- Multiple Longbridge OpenAPI accounts.
 - Manual assets for banks, Alipay, cash, property, and other offline accounts.
 - USD-denominated net worth summaries.
 - Dashboard-ready grouped data for AI-generated charts.
@@ -21,6 +22,7 @@ not trade, transfer, withdraw, or automate bank/Alipay access.
 - `uv` for dependency management and running commands.
 - Read-only Binance/OKX API keys if enabling exchange accounts.
 - moomoo/Futu OpenD installed, running, and logged in if enabling moomoo accounts.
+- Longbridge OpenAPI API key credentials if enabling Longbridge accounts.
 
 Install `uv` if it is not already available:
 
@@ -33,14 +35,20 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 Clone the repository and install dependencies:
 
 ```bash
-uv sync --extra dev --extra moomoo
+uv sync --extra dev --extra moomoo --extra longbridge
 cp config.example.yaml config.local.yaml
 ```
 
-If you do not need moomoo support, omit the optional moomoo extra:
+If you do not need moomoo or Longbridge support, omit those optional extras:
 
 ```bash
 uv sync --extra dev
+```
+
+Install Longbridge support with:
+
+```bash
+uv sync --extra dev --extra longbridge
 ```
 
 ## Configure
@@ -87,6 +95,15 @@ brokers:
         port: 11111
         trdMarket: US
         securityFirm: FUTUSECURITIES
+
+  longbridge:
+    accounts:
+      - id: longbridge-main
+        label: Longbridge Main
+        enabled: true
+        appKey: "longbridge-app-key"
+        appSecret: "longbridge-app-secret"
+        accessToken: "longbridge-access-token"
 
 manual:
   accounts:
@@ -188,5 +205,6 @@ ASSET_MCP_CONFIG=config.example.yaml uv run asset-mcp
 - Use read-only API keys for exchanges.
 - Do not commit `config.local.yaml`.
 - Do not enable withdrawal, transfer, or trading permissions on API keys.
+- Use Longbridge API key credentials with read-only permissions where possible.
 - Bank and Alipay balances are manual entries only; this project does not scrape
   or automate those services.
