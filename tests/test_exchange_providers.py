@@ -1,3 +1,4 @@
+import os
 from urllib.parse import urlparse
 
 import httpx
@@ -239,6 +240,39 @@ def test_longbridge_provider_converts_cash_and_stock_positions():
 
 
 @pytest.mark.asyncio
+async def test_longbridge_provider_redirects_sdk_stdout(capfd):
+    config = parse_config(
+        {
+            "brokers": {
+                "longbridge": {
+                    "accounts": [
+                        {
+                            "id": "longbridge-main",
+                            "label": "Longbridge",
+                            "appKey": "key",
+                            "appSecret": "secret",
+                            "accessToken": "token",
+                        }
+                    ]
+                }
+            }
+        }
+    )
+    provider = LongbridgeProvider(config)
+    provider._import_sdk = lambda: _NoisyLongbridgeSdk
+
+    assets = await provider.fetch_assets()
+
+    captured = capfd.readouterr()
+    assert captured.out == ""
+    assert "quote permissions table" in captured.err
+    assert len(assets) == 1
+    assert assets[0].symbol == "AAPL.US"
+    assert assets[0].unitPriceUsd == 200
+    assert assets[0].valueUsd == 600
+
+
+@pytest.mark.asyncio
 async def test_binance_fetch_includes_portfolio_margin_and_skips_legacy_margin_routes():
     config = _binance_config()
     client = _FakeBinanceClient(
@@ -353,3 +387,53 @@ class _FakeBinanceClient:
         if key not in self.routes:
             return _FakeResponse(404, {"code": -1, "msg": "not configured"})
         return _FakeResponse(200, self.routes[key])
+
+
+class _NoisyLongbridgeSdk:
+    class Config:
+        @staticmethod
+        def from_apikey(_app_key, _app_secret, _access_token):
+            return object()
+
+    class TradeContext:
+        def __init__(self, _config):
+            pass
+
+        def account_balance(self):
+            os.write(1, b"balance banner\n")
+            return {"data": {"list": []}}
+
+        def stock_positions(self):
+            os.write(1, b"positions banner\n")
+            return {
+                "data": {
+                    "channels": [
+                        {
+                            "account_channel": "lb_sg",
+                            "positions": [
+                                {
+                                    "symbol": "AAPL.US",
+                                    "symbol_name": "Apple",
+                                    "currency": "USD",
+                                    "quantity": "3",
+                                    "cost_price": "150",
+                                }
+                            ],
+                        }
+                    ]
+                }
+            }
+
+        def close(self):
+            os.write(1, b"trade close banner\n")
+
+    class QuoteContext:
+        def __init__(self, _config):
+            pass
+
+        def quote(self, _symbols):
+            os.write(1, b"quote permissions table\n")
+            return [{"symbol": "AAPL.US", "last_done": "200"}]
+
+        def close(self):
+            os.write(1, b"quote close banner\n")
