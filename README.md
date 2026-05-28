@@ -1,7 +1,7 @@
 # Asset MCP
 
 Read-only Python MCP server for aggregating personal assets across Binance, OKX,
-moomoo OpenD, Longbridge, and manually configured accounts.
+moomoo OpenD, Longbridge, IBKR, and manually configured accounts.
 
 The server exposes normalized asset data to any MCP-compatible AI client. It does
 not trade, transfer, withdraw, or automate bank/Alipay access.
@@ -12,6 +12,7 @@ not trade, transfer, withdraw, or automate bank/Alipay access.
 - Multiple OKX accounts.
 - Multiple moomoo/Futu OpenD accounts.
 - Multiple Longbridge OpenAPI accounts.
+- Multiple IBKR Flex Web Service accounts.
 - Manual assets for banks, Alipay, cash, property, and other offline accounts.
 - USD-denominated net worth summaries.
 - Dashboard-ready grouped data for AI-generated charts.
@@ -23,6 +24,7 @@ not trade, transfer, withdraw, or automate bank/Alipay access.
 - Read-only Binance/OKX API keys if enabling exchange accounts.
 - moomoo/Futu OpenD installed, running, and logged in if enabling moomoo accounts.
 - Longbridge OpenAPI API key credentials if enabling Longbridge accounts.
+- IBKR Flex Web Service token and Flex Query ID if enabling IBKR accounts.
 
 Install `uv` if it is not already available:
 
@@ -107,6 +109,34 @@ Use stdio transport. Example client configuration:
 If your MCP client does not support `cwd`, pass an absolute config path through
 `ASSET_MCP_CONFIG`.
 
+### IBKR setup
+
+IBKR support uses Flex Web Service. In IBKR Client Portal, enable Flex Web
+Service, create an Activity Flex Query that outputs XML, and include at least
+Cash Report and Open Positions. Then configure the generated token and query ID
+under `brokers.ibkr.accounts`:
+
+```yaml
+brokers:
+  ibkr:
+    accounts:
+      - id: ibkr-main
+        label: IBKR Main
+        enabled: true
+        token: "replace-with-flex-web-service-token"
+        queryId: "replace-with-flex-query-id"
+        baseUrl: https://ndcdyn.interactivebrokers.com/AccountManagement/FlexWebService
+        accountId: U1234567
+        version: 3
+        statementRetries: 3
+        statementRetryDelaySeconds: 5
+```
+
+Leave `accountId` empty to import every account included in the Flex Query, or
+set it to keep only one account from a multi-account report. Flex Activity
+Statement data is report data rather than a real-time feed, so use it for
+periodic net-worth snapshots instead of active polling.
+
 ## MCP Tools
 
 - `get_net_worth`: total net worth and grouped summaries.
@@ -166,5 +196,6 @@ When adding a new broker or exchange provider:
 - Do not commit `config.local.yaml`.
 - Do not enable withdrawal, transfer, or trading permissions on API keys.
 - Use Longbridge API key credentials with read-only permissions where possible.
+- Use IBKR Flex Web Service only for read-only reporting queries.
 - Bank and Alipay balances are manual entries only; this project does not scrape
   or automate those services.

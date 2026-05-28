@@ -70,6 +70,20 @@ class LongbridgeAccountConfig:
 
 
 @dataclass(frozen=True)
+class IbkrAccountConfig:
+    id: str
+    label: str
+    token: str = ""
+    queryId: str = ""
+    baseUrl: str = "https://ndcdyn.interactivebrokers.com/AccountManagement/FlexWebService"
+    accountId: str | None = None
+    version: int = 3
+    statementRetries: int = 3
+    statementRetryDelaySeconds: float = 5.0
+    enabled: bool = True
+
+
+@dataclass(frozen=True)
 class ManualAssetConfig:
     symbol: str
     quantity: float
@@ -95,6 +109,7 @@ class AppConfig:
     okxAccounts: list[OkxAccountConfig] = field(default_factory=list)
     moomooAccounts: list[MoomooAccountConfig] = field(default_factory=list)
     longbridgeAccounts: list[LongbridgeAccountConfig] = field(default_factory=list)
+    ibkrAccounts: list[IbkrAccountConfig] = field(default_factory=list)
     manualAccounts: list[ManualAccountConfig] = field(default_factory=list)
 
 
@@ -179,6 +194,30 @@ def parse_config(raw: dict[str, Any]) -> AppConfig:
         for item in _account_items(brokers, "longbridge")
     ]
 
+    ibkr_accounts = [
+        IbkrAccountConfig(
+            id=_required_str(item, "id", "brokers.ibkr.accounts[]"),
+            label=str(item.get("label") or item.get("id")),
+            enabled=bool(item.get("enabled", True)),
+            token=str(item.get("token", "")),
+            queryId=str(item.get("queryId", "")),
+            baseUrl=str(
+                item.get(
+                    "baseUrl",
+                    "https://ndcdyn.interactivebrokers.com/AccountManagement/FlexWebService",
+                )
+            ).rstrip("/"),
+            accountId=_optional_str(item.get("accountId")),
+            version=int(item.get("version", 3)),
+            statementRetries=int(item.get("statementRetries", 3)),
+            statementRetryDelaySeconds=_as_float(
+                item.get("statementRetryDelaySeconds", 5),
+                "brokers.ibkr.accounts[].statementRetryDelaySeconds",
+            ),
+        )
+        for item in _account_items(brokers, "ibkr")
+    ]
+
     manual_accounts = [
         ManualAccountConfig(
             id=_required_str(item, "id", "manual.accounts[]"),
@@ -206,6 +245,7 @@ def parse_config(raw: dict[str, Any]) -> AppConfig:
         okxAccounts=okx_accounts,
         moomooAccounts=moomoo_accounts,
         longbridgeAccounts=longbridge_accounts,
+        ibkrAccounts=ibkr_accounts,
         manualAccounts=manual_accounts,
     )
     validate_unique_account_ids(config)
@@ -219,6 +259,7 @@ def validate_unique_account_ids(config: AppConfig) -> None:
         ("okx", config.okxAccounts),
         ("moomoo", config.moomooAccounts),
         ("longbridge", config.longbridgeAccounts),
+        ("ibkr", config.ibkrAccounts),
         ("manual", config.manualAccounts),
     ]
     for source, accounts in all_accounts:
@@ -269,3 +310,9 @@ def _optional_int(value: Any) -> int | None:
     if value is None:
         return None
     return int(value)
+
+
+def _optional_str(value: Any) -> str | None:
+    if value is None or str(value).strip() == "":
+        return None
+    return str(value)

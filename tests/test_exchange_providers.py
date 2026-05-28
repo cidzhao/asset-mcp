@@ -7,6 +7,7 @@ import pytest
 
 from asset_mcp.config import parse_config
 from asset_mcp.providers.binance import BinanceProvider
+from asset_mcp.providers.ibkr import IbkrProvider
 from asset_mcp.providers.longbridge import LongbridgeProvider
 from asset_mcp.providers.moomoo import MoomooProvider
 from asset_mcp.providers.okx import OkxProvider
@@ -239,6 +240,102 @@ def test_longbridge_provider_converts_cash_and_stock_positions():
     assert by_symbol["AAPL.US"].rawSource == "stock_positions_cost_price"
 
 
+def test_ibkr_provider_converts_flex_cash_and_open_positions():
+    config = parse_config(
+        {
+            "rates": {"USD": 1, "HKD": 0.128},
+            "brokers": {
+                "ibkr": {
+                    "accounts": [
+                        {
+                            "id": "ibkr-main",
+                            "label": "IBKR Main",
+                            "token": "token",
+                            "queryId": "12345",
+                            "accountId": "U1234567",
+                        }
+                    ]
+                }
+            },
+        }
+    )
+    provider = IbkrProvider(config)
+
+    root = provider._parse_xml(
+        b"""
+        <FlexQueryResponse>
+          <FlexStatements count="1">
+            <FlexStatement accountId="U1234567">
+              <CashReport>
+                <CashReportCurrency currency="USD" endingCash="1000" />
+                <CashReportCurrency currency="HKD" endingCash="780" />
+                <CashReportCurrency currency="BASE" endingCash="1099.84" />
+              </CashReport>
+              <OpenPositions>
+                <OpenPosition symbol="AAPL" description="Apple Inc" position="3"
+                  markPrice="200" positionValue="600" currency="USD" />
+                <OpenPosition symbol="700" description="TENCENT" position="2"
+                  markPrice="400" positionValue="800" currency="HKD" />
+              </OpenPositions>
+            </FlexStatement>
+          </FlexStatements>
+        </FlexQueryResponse>
+        """
+    )
+
+    assets = provider._assets_from_statement_xml(
+        config.ibkrAccounts[0],
+        root,
+    )
+
+    by_symbol = {asset.symbol: asset for asset in assets}
+    assert by_symbol["USD"].category == "cash"
+    assert by_symbol["USD"].valueUsd == 1000
+    assert by_symbol["HKD"].valueUsd == 99.84
+    assert "BASE" not in by_symbol
+    assert by_symbol["AAPL"].category == "stock"
+    assert by_symbol["AAPL"].wallet == "U1234567"
+    assert by_symbol["AAPL"].rawSource == "flex_open_positions"
+    assert by_symbol["700"].valueUsd == 102.4
+
+
+@pytest.mark.asyncio
+async def test_ibkr_provider_fetches_flex_statement():
+    config = parse_config(
+        {
+            "brokers": {
+                "ibkr": {
+                    "accounts": [
+                        {
+                            "id": "ibkr-main",
+                            "label": "IBKR Main",
+                            "token": "token",
+                            "queryId": "12345",
+                            "baseUrl": "https://example.test/flex",
+                            "statementRetryDelaySeconds": 0,
+                        }
+                    ]
+                }
+            }
+        }
+    )
+    client = _FakeFlexClient()
+
+    assets = await IbkrProvider(config, client=client).fetch_assets()
+
+    assert {asset.symbol for asset in assets} == {"USD", "AAPL"}
+    assert client.calls == [
+        (
+            "/flex/SendRequest",
+            {"t": "token", "q": "12345", "v": 3},
+        ),
+        (
+            "/flex/GetStatement",
+            {"t": "token", "q": "999999", "v": 3},
+        ),
+    ]
+
+
 @pytest.mark.asyncio
 async def test_longbridge_provider_redirects_sdk_stdout(capfd):
     config = parse_config(
@@ -357,6 +454,7 @@ class _FakeResponse:
     def __init__(self, status_code, data):
         self.status_code = status_code
         self._data = data
+        self.content = data if isinstance(data, bytes) else str(data).encode()
 
     def json(self):
         return self._data
@@ -387,6 +485,47 @@ class _FakeBinanceClient:
         if key not in self.routes:
             return _FakeResponse(404, {"code": -1, "msg": "not configured"})
         return _FakeResponse(200, self.routes[key])
+
+
+class _FakeFlexClient:
+    def __init__(self):
+        self.calls = []
+
+    async def get(self, url, **kwargs):
+        parsed = urlparse(url)
+        params = kwargs.get("params", {})
+        self.calls.append((parsed.path, params))
+        if parsed.path.endswith("/SendRequest"):
+            return _FakeResponse(
+                200,
+                b"""
+                <FlexStatementResponse>
+                  <Status>Success</Status>
+                  <ReferenceCode>999999</ReferenceCode>
+                </FlexStatementResponse>
+                """,
+            )
+        if parsed.path.endswith("/GetStatement"):
+            return _FakeResponse(
+                200,
+                b"""
+                <FlexQueryResponse>
+                  <FlexStatements count="1">
+                    <FlexStatement accountId="U1234567">
+                      <CashReport>
+                        <CashReportCurrency currency="USD" endingCash="1000" />
+                      </CashReport>
+                      <OpenPositions>
+                        <OpenPosition symbol="AAPL" description="Apple Inc"
+                          position="3" markPrice="200" positionValue="600"
+                          currency="USD" />
+                      </OpenPositions>
+                    </FlexStatement>
+                  </FlexStatements>
+                </FlexQueryResponse>
+                """,
+            )
+        return _FakeResponse(404, b"<Error />")
 
 
 class _NoisyLongbridgeSdk:

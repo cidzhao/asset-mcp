@@ -3,7 +3,8 @@
 ## Project Overview
 
 Asset MCP is a read-only Python MCP server for aggregating personal asset data
-across Binance, OKX, moomoo OpenD, Longbridge, and manually configured accounts.
+across Binance, OKX, moomoo OpenD, Longbridge, IBKR, and manually configured
+accounts.
 It exposes normalized asset data, USD-denominated net worth summaries, and
 dashboard-ready grouping data to MCP-compatible clients.
 

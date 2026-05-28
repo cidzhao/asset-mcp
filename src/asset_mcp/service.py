@@ -8,6 +8,7 @@ from asset_mcp.config import AppConfig, load_config
 from asset_mcp.models import AccountStatus, Asset
 from asset_mcp.providers import (
     BinanceProvider,
+    IbkrProvider,
     LongbridgeProvider,
     ManualProvider,
     MoomooProvider,
@@ -84,5 +85,6 @@ class AssetService:
             ("okx", OkxProvider(config)),
             ("moomoo", MoomooProvider(config)),
             ("longbridge", LongbridgeProvider(config)),
+            ("ibkr", IbkrProvider(config)),
         ]
         return [provider for provider_source, provider in providers if source in {None, provider_source}]

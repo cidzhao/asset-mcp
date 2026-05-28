@@ -49,6 +49,19 @@ brokers:
         appSecret: "replace-with-app-secret"
         accessToken: "replace-with-access-token"
 
+  ibkr:
+    accounts:
+      - id: ibkr-main
+        label: IBKR Main
+        enabled: false
+        token: "replace-with-flex-web-service-token"
+        queryId: "replace-with-flex-query-id"
+        baseUrl: https://ndcdyn.interactivebrokers.com/AccountManagement/FlexWebService
+        accountId: null
+        version: 3
+        statementRetries: 3
+        statementRetryDelaySeconds: 5
+
 manual:
   accounts:
     - id: alipay-main

@@ -47,6 +47,20 @@ def test_parse_config_supports_multiple_accounts():
                             "accessToken": "token",
                         }
                     ]
+                },
+                "ibkr": {
+                    "accounts": [
+                        {
+                            "id": "ibkr-main",
+                            "label": "IBKR",
+                            "token": "token",
+                            "queryId": "12345",
+                            "baseUrl": "https://example.test/flex/",
+                            "accountId": "U1234567",
+                            "statementRetries": 2,
+                            "statementRetryDelaySeconds": 0,
+                        }
+                    ]
                 }
             },
         }
@@ -55,6 +69,11 @@ def test_parse_config_supports_multiple_accounts():
     assert [account.id for account in config.binanceAccounts] == ["binance-main", "binance-sub"]
     assert config.okxAccounts[0].id == "okx-main"
     assert config.longbridgeAccounts[0].appKey == "key"
+    assert config.ibkrAccounts[0].token == "token"
+    assert config.ibkrAccounts[0].queryId == "12345"
+    assert config.ibkrAccounts[0].baseUrl == "https://example.test/flex"
+    assert config.ibkrAccounts[0].accountId == "U1234567"
+    assert config.ibkrAccounts[0].statementRetries == 2
     assert config.manualAccounts[0].assets[0].quantity == 100
 
 
