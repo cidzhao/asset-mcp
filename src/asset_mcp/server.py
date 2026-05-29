@@ -11,7 +11,8 @@ mcp = FastMCP(
     "asset-mcp",
     instructions=(
         "Read-only personal asset aggregation server. It summarizes configured "
-        "Binance, OKX, moomoo OpenD, Longbridge, IBKR, and manual accounts in USD."
+        "Binance, OKX, moomoo OpenD, Longbridge, IBKR, on-chain wallets, "
+        "and manual accounts in USD."
     ),
 )
 

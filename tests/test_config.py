@@ -63,6 +63,30 @@ def test_parse_config_supports_multiple_accounts():
                     ]
                 }
             },
+            "onchain": {
+                "accounts": [
+                    {
+                        "id": "onchain-main",
+                        "label": "On-chain Wallet",
+                        "addresses": [
+                            {
+                                "chain": "ethereum",
+                                "address": "0x0000000000000000000000000000000000000001",
+                                "tokens": [
+                                    {
+                                        "symbol": "CUSTOM",
+                                        "contractAddress": (
+                                            "0x00000000000000000000000000000000000000c0"
+                                        ),
+                                        "decimals": 18,
+                                        "name": "Custom Token",
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ]
+            },
         }
     )
 
@@ -74,6 +98,8 @@ def test_parse_config_supports_multiple_accounts():
     assert config.ibkrAccounts[0].baseUrl == "https://example.test/flex"
     assert config.ibkrAccounts[0].accountId == "U1234567"
     assert config.ibkrAccounts[0].statementRetries == 2
+    assert config.onchainAccounts[0].addresses[0].chain == "ethereum"
+    assert config.onchainAccounts[0].addresses[0].tokens[0].symbol == "CUSTOM"
     assert config.manualAccounts[0].assets[0].quantity == 100
 
 

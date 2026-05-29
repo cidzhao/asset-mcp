@@ -13,6 +13,7 @@ from asset_mcp.providers import (
     ManualProvider,
     MoomooProvider,
     OkxProvider,
+    OnchainProvider,
 )
 from asset_mcp.providers.base import AssetProvider
 
@@ -86,5 +87,6 @@ class AssetService:
             ("moomoo", MoomooProvider(config)),
             ("longbridge", LongbridgeProvider(config)),
             ("ibkr", IbkrProvider(config)),
+            ("onchain", OnchainProvider(config)),
         ]
         return [provider for provider_source, provider in providers if source in {None, provider_source}]

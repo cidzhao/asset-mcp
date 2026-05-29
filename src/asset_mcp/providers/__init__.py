@@ -5,6 +5,7 @@ from asset_mcp.providers.longbridge import LongbridgeProvider
 from asset_mcp.providers.manual import ManualProvider
 from asset_mcp.providers.moomoo import MoomooProvider
 from asset_mcp.providers.okx import OkxProvider
+from asset_mcp.providers.onchain import OnchainProvider
 
 __all__ = [
     "AssetProvider",
@@ -14,4 +15,5 @@ __all__ = [
     "ManualProvider",
     "MoomooProvider",
     "OkxProvider",
+    "OnchainProvider",
 ]

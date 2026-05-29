@@ -84,6 +84,40 @@ class IbkrAccountConfig:
 
 
 @dataclass(frozen=True)
+class OnchainIndexerConfig:
+    provider: str = "covalent"
+    apiKey: str = ""
+    baseUrl: str = "https://api.covalenthq.com/v1"
+
+
+@dataclass(frozen=True)
+class OnchainTokenConfig:
+    symbol: str
+    contractAddress: str
+    decimals: int
+    name: str | None = None
+    coinGeckoId: str | None = None
+
+
+@dataclass(frozen=True)
+class OnchainAddressConfig:
+    chain: str
+    address: str
+    label: str | None = None
+    tokens: list[OnchainTokenConfig] = field(default_factory=list)
+    rpcUrl: str | None = None
+    explorerApiUrl: str | None = None
+
+
+@dataclass(frozen=True)
+class OnchainAccountConfig:
+    id: str
+    label: str
+    addresses: list[OnchainAddressConfig]
+    enabled: bool = True
+
+
+@dataclass(frozen=True)
 class ManualAssetConfig:
     symbol: str
     quantity: float
@@ -109,6 +143,8 @@ class AppConfig:
     moomooAccounts: list[MoomooAccountConfig] = field(default_factory=list)
     longbridgeAccounts: list[LongbridgeAccountConfig] = field(default_factory=list)
     ibkrAccounts: list[IbkrAccountConfig] = field(default_factory=list)
+    onchainIndexer: OnchainIndexerConfig = field(default_factory=OnchainIndexerConfig)
+    onchainAccounts: list[OnchainAccountConfig] = field(default_factory=list)
     manualAccounts: list[ManualAccountConfig] = field(default_factory=list)
 
 
@@ -139,6 +175,7 @@ def parse_config(raw: dict[str, Any]) -> AppConfig:
 
     exchanges = raw.get("exchanges") or {}
     brokers = raw.get("brokers") or {}
+    onchain = raw.get("onchain") or {}
     manual = raw.get("manual") or {}
 
     binance_accounts = [
@@ -217,6 +254,56 @@ def parse_config(raw: dict[str, Any]) -> AppConfig:
         for item in _account_items(brokers, "ibkr")
     ]
 
+    indexer = onchain.get("indexer") or {}
+    onchain_indexer = OnchainIndexerConfig(
+        provider=str(indexer.get("provider", "covalent")),
+        apiKey=str(indexer.get("apiKey", "")),
+        baseUrl=str(indexer.get("baseUrl", "https://api.covalenthq.com/v1")).rstrip("/"),
+    )
+
+    onchain_accounts = [
+        OnchainAccountConfig(
+            id=_required_str(item, "id", "onchain.accounts[]"),
+            label=str(item.get("label") or item.get("id")),
+            enabled=bool(item.get("enabled", True)),
+            addresses=[
+                OnchainAddressConfig(
+                    chain=_required_str(
+                        address,
+                        "chain",
+                        f"onchain.accounts[{item.get('id')}].addresses[]",
+                    ),
+                    address=_required_str(
+                        address, "address", f"onchain.accounts[{item.get('id')}].addresses[]"
+                    ),
+                    label=_optional_str(address.get("label")),
+                    rpcUrl=_optional_str(address.get("rpcUrl")),
+                    explorerApiUrl=_optional_str(address.get("explorerApiUrl")),
+                    tokens=[
+                        OnchainTokenConfig(
+                            symbol=_required_str(
+                                token,
+                                "symbol",
+                                f"onchain.accounts[{item.get('id')}].addresses[].tokens[]",
+                            ),
+                            contractAddress=_required_str(
+                                token,
+                                "contractAddress",
+                                f"onchain.accounts[{item.get('id')}].addresses[].tokens[]",
+                            ),
+                            decimals=int(token.get("decimals", 18)),
+                            name=_optional_str(token.get("name")),
+                            coinGeckoId=_optional_str(token.get("coinGeckoId")),
+                        )
+                        for token in address.get("tokens", [])
+                    ],
+                )
+                for address in item.get("addresses", [])
+            ],
+        )
+        for item in onchain.get("accounts", [])
+    ]
+
     manual_accounts = [
         ManualAccountConfig(
             id=_required_str(item, "id", "manual.accounts[]"),
@@ -244,6 +331,8 @@ def parse_config(raw: dict[str, Any]) -> AppConfig:
         moomooAccounts=moomoo_accounts,
         longbridgeAccounts=longbridge_accounts,
         ibkrAccounts=ibkr_accounts,
+        onchainIndexer=onchain_indexer,
+        onchainAccounts=onchain_accounts,
         manualAccounts=manual_accounts,
     )
     validate_unique_account_ids(config)
@@ -258,6 +347,7 @@ def validate_unique_account_ids(config: AppConfig) -> None:
         ("moomoo", config.moomooAccounts),
         ("longbridge", config.longbridgeAccounts),
         ("ibkr", config.ibkrAccounts),
+        ("onchain", config.onchainAccounts),
         ("manual", config.manualAccounts),
     ]
     for source, accounts in all_accounts:

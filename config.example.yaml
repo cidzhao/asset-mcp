@@ -62,6 +62,40 @@ brokers:
         statementRetries: 3
         statementRetryDelaySeconds: 5
 
+onchain:
+  accounts:
+    - id: onchain-wallet
+      label: On-chain Wallet
+      enabled: false
+      addresses:
+        - chain: bitcoin
+          address: "replace-with-btc-address"
+        - chain: ethereum
+          address: "replace-with-evm-address"
+          # Optional custom ERC-20 contracts to query on this EVM address.
+          # Use this when the built-in token list or configured indexer does not
+          # include a token you hold. These fields are read-only metadata for
+          # balance and valuation; never put private keys or seed phrases here.
+          tokens:
+            # Display ticker for the token in MCP responses. Required.
+            - symbol: CUSTOM
+              # Human-readable token name. Optional; symbol is used if omitted.
+              name: Custom ERC-20 Token
+              # ERC-20 contract address on the same chain as this wallet
+              # address. Required. Example: 0xdAC17F... for Ethereum USDT.
+              contractAddress: "replace-with-erc20-contract-address"
+              # Token decimal precision from the contract metadata. Required.
+              # Common values: 18 for most ERC-20 tokens, 6 for USDT/USDC.
+              decimals: 18
+              # Optional: add coinGeckoId for live USD pricing, or set
+              # rates.CUSTOM if you prefer a fixed/manual USD price.
+        - chain: solana
+          address: "replace-with-solana-address"
+        - chain: bsc
+          address: "replace-with-evm-address"
+        - chain: tron
+          address: "replace-with-tron-address"
+
 manual:
   accounts:
     - id: alipay-main

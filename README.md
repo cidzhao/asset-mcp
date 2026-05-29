@@ -1,7 +1,8 @@
 # Asset MCP
 
 Read-only Python MCP server for aggregating personal assets across Binance, OKX,
-moomoo OpenD, Longbridge, IBKR, and manually configured accounts.
+moomoo OpenD, Longbridge, IBKR, on-chain wallets, and manually configured
+accounts.
 
 The server exposes normalized asset data to any MCP-compatible AI client. It does
 not trade, transfer, withdraw, or automate bank/Alipay access.
@@ -13,6 +14,8 @@ not trade, transfer, withdraw, or automate bank/Alipay access.
 - Multiple moomoo/Futu OpenD accounts.
 - Multiple Longbridge OpenAPI accounts.
 - Multiple IBKR Flex Web Service accounts.
+- On-chain wallet addresses for BTC, ETH, SOL, BSC, TRON, Polygon, Avalanche,
+  Arbitrum, Base, and Optimism.
 - Manual assets for banks, Alipay, cash, property, and other offline accounts.
 - USD-denominated net worth summaries.
 - Dashboard-ready grouped data for AI-generated charts.
@@ -25,6 +28,7 @@ not trade, transfer, withdraw, or automate bank/Alipay access.
 - moomoo/Futu OpenD installed, running, and logged in if enabling moomoo accounts.
 - Longbridge OpenAPI API key credentials if enabling Longbridge accounts.
 - IBKR Flex Web Service token and Flex Query ID if enabling IBKR accounts.
+- Public wallet addresses if enabling on-chain wallet accounts.
 
 Install `uv` if it is not already available:
 
@@ -74,6 +78,74 @@ and is used for filtering.
 For manual assets in non-USD currencies, configure rates under `rates` in
 `config.local.yaml`. Manual asset USD values are calculated as
 `quantity * rates[currency]`.
+
+For on-chain wallets, configure public addresses under `onchain.accounts`.
+The provider discovers assets held by each address. EVM chains query native
+balances plus a built-in mainstream ERC-20 token list, and any ERC-20 contracts
+explicitly configured under the address. Solana uses
+`getTokenAccountsByOwner` for SPL token accounts. Bitcoin and TRON use public
+address APIs. No private keys, seed phrases, trading, transfer, or approval
+operations are supported.
+
+Supported built-in chains:
+
+- `bitcoin` / `btc`
+- `ethereum` / `eth` / `1`
+- `solana` / `sol` / `501`
+- `bsc` / `bnb` / `56`
+- `tron` / `trx`
+- `polygon` / `matic` / `137`
+- `avalanche` / `avax` / `43114`
+- `arbitrum` / `42161`
+- `base` / `8453`
+- `optimism` / `op` / `10`
+
+Example on-chain wallet address config:
+
+```yaml
+onchain:
+  accounts:
+    - id: onchain-wallet
+      label: On-chain Wallet
+      enabled: true
+      addresses:
+        - chain: bitcoin
+          address: "bc1..."
+        - chain: ethereum
+          address: "0x..."
+          tokens:
+            - symbol: CUSTOM
+              name: Custom ERC-20 Token
+              contractAddress: "0x..."
+              decimals: 18
+              coinGeckoId: ""
+        - chain: solana
+          address: "..."
+        - chain: bsc
+          address: "0x..."
+```
+
+Each address can override `rpcUrl` or `explorerApiUrl` if you prefer your own
+node or paid provider over the default public endpoints. Native token prices are
+read from `rates` first, then CoinGecko. Solana SPL tokens without a Jupiter
+price are still returned with zero USD value.
+
+For configured ERC-20 tokens, `symbol`, `contractAddress`, and `decimals` are
+required. `name` is optional. Add `coinGeckoId` for live USD pricing, or provide
+the token price under `rates`; if no price is available the token is still
+returned with zero USD value. If a Covalent indexer is enabled, configured
+ERC-20 contracts are queried in addition to the indexed inventory, skipping
+contracts already returned by the indexer.
+
+For an Etherscan-like full token inventory instead of the built-in mainstream
+EVM token list, configure an optional indexer:
+
+```yaml
+onchain:
+  indexer:
+    provider: covalent
+    apiKey: "replace-with-covalent-api-key"
+```
 
 ## Run the MCP Server
 
@@ -200,3 +272,5 @@ When adding a new broker or exchange provider:
 - Use IBKR Flex Web Service only for read-only reporting queries.
 - Bank and Alipay balances are manual entries only; this project does not scrape
   or automate those services.
+- On-chain wallet support is address-based and read-only. Do not enter private
+  keys or seed phrases in the config.
