@@ -174,7 +174,7 @@ class MoomooProvider(AssetProvider):
                 import futu  # type: ignore
             except ImportError as exc:
                 raise RuntimeError(
-                    "Install moomoo support with: pip install moomoo-api"
+                    "Install moomoo support with: pip install 'asset-mcp[moomoo]'"
                 ) from exc
         try:
             getattr(futu.SecurityFirm, "FUTUSG")

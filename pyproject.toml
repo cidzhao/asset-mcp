@@ -12,7 +12,7 @@ dependencies = [
 
 [project.optional-dependencies]
 moomoo = [
-    "futu-api>=9.1.0",
+    "moomoo-api>=10.0.0",
 ]
 longbridge = [
     "longbridge>=4.0.0",
