@@ -23,11 +23,20 @@ perform any other asset-moving operation.
 
 - `src/asset_mcp/server.py`: MCP tool definitions and server entry point.
 - `src/asset_mcp/service.py`: service layer used by MCP tools.
-- `src/asset_mcp/aggregation.py`: asset grouping and summary logic.
-- `src/asset_mcp/config.py`: YAML config parsing and validation.
-- `src/asset_mcp/models.py`: normalized domain models.
-- `src/asset_mcp/providers/`: exchange, broker, on-chain, and manual asset providers.
-- `tests/`: unit and integration-style regression tests.
+- `src/asset_mcp/domain/aggregation.py`: asset grouping and summary logic.
+- `src/asset_mcp/domain/models.py`: normalized domain models.
+- `src/asset_mcp/config/`: YAML config parsing, config models, validation, and redaction.
+- `src/asset_mcp/providers/registry.py`: source-to-provider factory registry.
+- `src/asset_mcp/providers/exchanges/`: crypto exchange providers such as Binance and OKX.
+- `src/asset_mcp/providers/brokerages/`: brokerage providers such as moomoo, Longbridge, and IBKR.
+- `src/asset_mcp/providers/onchain/`: on-chain wallet provider and chain-specific adapters.
+- `src/asset_mcp/providers/manual/`: manually configured asset provider.
+- `src/asset_mcp/aggregation.py`, `src/asset_mcp/models.py`, and legacy
+  `src/asset_mcp/providers/*.py` modules: compatibility re-exports for older
+  imports. Prefer the package paths above for new code.
+- `tests/config/`: config parser and validation regression tests.
+- `tests/domain/`: domain model, filtering, and aggregation regression tests.
+- `tests/providers/`: provider parsing, stdout hygiene, and fake-client integration tests.
 - `config.example.yaml`: safe example config. Do not put real secrets here.
 
 ## Development Commands
@@ -65,6 +74,13 @@ ASSET_MCP_CONFIG=config.example.yaml uv run asset-mcp
 ## Code Guidelines
 
 - Prefer existing provider and service patterns before adding new abstractions.
+- Register new providers in `src/asset_mcp/providers/registry.py`; do not grow
+  provider construction logic inside `src/asset_mcp/service.py`.
+- Put crypto exchange integrations under `providers/exchanges/`, brokerage
+  integrations under `providers/brokerages/`, on-chain logic under
+  `providers/onchain/`, and manual sources under `providers/manual/`.
+- Keep compatibility re-export modules small; platform implementation should
+  live in the grouped provider package.
 - Keep provider integrations read-only.
 - Preserve normalized response shapes used by MCP tools unless the caller-facing
   contract is intentionally changed and tests are updated.
@@ -76,6 +92,10 @@ ASSET_MCP_CONFIG=config.example.yaml uv run asset-mcp
   the codebase already has a suitable helper.
 - Keep edits scoped. Do not rewrite unrelated provider, config, or aggregation
   code while making a targeted change.
+- The checked-in tests should be runnable by a new contributor with
+  `uv sync --extra dev` and `uv run pytest`. Do not require real API keys,
+  `config.local.yaml`, a running broker app, or live network access for ordinary
+  regression tests.
 
 ## Provider stdout Hygiene
 

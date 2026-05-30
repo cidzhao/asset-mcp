@@ -20,6 +20,23 @@ not trade, transfer, withdraw, or automate bank/Alipay access.
 - USD-denominated net worth summaries.
 - Dashboard-ready grouped data for AI-generated charts.
 
+## Code Layout
+
+- `src/asset_mcp/server.py`: MCP stdio entry point and tool definitions.
+- `src/asset_mcp/service.py`: application service orchestration.
+- `src/asset_mcp/domain/`: normalized models plus aggregation and filtering logic.
+- `src/asset_mcp/config/`: config models, YAML parsing, validation, and secret redaction.
+- `src/asset_mcp/providers/registry.py`: source-to-provider factory registry.
+- `src/asset_mcp/providers/exchanges/`: crypto exchange providers, currently Binance and OKX.
+- `src/asset_mcp/providers/brokerages/`: brokerage providers, currently moomoo, Longbridge, and IBKR.
+- `src/asset_mcp/providers/onchain/`: on-chain wallet provider and chain-specific package boundaries.
+- `src/asset_mcp/providers/manual/`: manually configured asset provider.
+- `tests/config/`, `tests/domain/`, and `tests/providers/`: regression tests matching the source layout.
+
+Compatibility re-export modules are kept for older imports such as
+`asset_mcp.models`, `asset_mcp.aggregation`, and
+`asset_mcp.providers.binance`. New code should prefer the package paths above.
+
 ## Requirements
 
 - Python `>=3.10`.
@@ -225,6 +242,16 @@ Use asset-mcp to summarize my net worth by account and asset category.
 
 ## Development
 
+Install development dependencies before running tests:
+
+```bash
+uv sync --extra dev
+```
+
+The regression tests use fake provider clients and inline sample config data.
+They do not require `config.local.yaml`, real API keys, running OpenD, broker SDK
+sessions, or outbound network access.
+
 Run tests:
 
 ```bash
@@ -242,6 +269,26 @@ Run the server locally against the example config:
 ```bash
 ASSET_MCP_CONFIG=config.example.yaml uv run asset-mcp
 ```
+
+Build local package artifacts:
+
+```bash
+uv build
+```
+
+This writes wheel and source distribution files under `dist/`.
+
+### Adding Providers
+
+- Add crypto exchanges under `src/asset_mcp/providers/exchanges/<platform>/`.
+- Add brokerage integrations under `src/asset_mcp/providers/brokerages/<platform>/`.
+- Add manual or on-chain behavior under their existing provider packages.
+- Register the new source in `src/asset_mcp/providers/registry.py`.
+- Extend config models/parsing under `src/asset_mcp/config/` when the provider
+  needs new YAML fields.
+- Add provider regression tests under `tests/providers/`.
+- Preserve existing MCP response shapes and source names unless you intentionally
+  change the public contract and update tests and docs together.
 
 ### Provider stdout hygiene
 
