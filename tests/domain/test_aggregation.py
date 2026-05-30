@@ -1,5 +1,5 @@
-from asset_mcp.aggregation import build_dashboard_data, build_net_worth, filter_assets
-from asset_mcp.models import Asset
+from asset_mcp.domain.aggregation import build_dashboard_data, build_net_worth, filter_assets
+from asset_mcp.domain.models import Asset
 
 
 def test_aggregation_groups_by_category_source_account_and_currency():
