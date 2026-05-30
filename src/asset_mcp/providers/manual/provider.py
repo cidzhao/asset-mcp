@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from asset_mcp.config import AppConfig, ManualAccountConfig
-from asset_mcp.models import AccountStatus, Asset, utc_now_iso
+from asset_mcp.domain.models import AccountStatus, Asset, utc_now_iso
 from asset_mcp.providers.base import AssetProvider
 
 VALID_MANUAL_CATEGORIES = {"cash", "manual", "stock", "crypto"}

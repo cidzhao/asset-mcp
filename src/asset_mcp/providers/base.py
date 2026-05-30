@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from asset_mcp.models import AccountStatus, Asset
+from asset_mcp.domain.models import AccountStatus, Asset
 
 
 class AssetProvider(ABC):

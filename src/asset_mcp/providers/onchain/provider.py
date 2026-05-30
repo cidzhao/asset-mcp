@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 
 from asset_mcp.config import AppConfig, OnchainAccountConfig, OnchainAddressConfig
-from asset_mcp.models import AccountStatus, Asset, utc_now_iso
+from asset_mcp.domain.models import AccountStatus, Asset, utc_now_iso
 from asset_mcp.providers.base import AssetProvider
 
 

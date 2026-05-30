@@ -3,19 +3,11 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from asset_mcp.aggregation import build_dashboard_data, build_net_worth, filter_assets
+from asset_mcp.domain.aggregation import build_dashboard_data, build_net_worth, filter_assets
 from asset_mcp.config import AppConfig, load_config
-from asset_mcp.models import AccountStatus, Asset
-from asset_mcp.providers import (
-    BinanceProvider,
-    IbkrProvider,
-    LongbridgeProvider,
-    ManualProvider,
-    MoomooProvider,
-    OkxProvider,
-    OnchainProvider,
-)
+from asset_mcp.domain.models import AccountStatus, Asset
 from asset_mcp.providers.base import AssetProvider
+from asset_mcp.providers.registry import build_provider_entries
 
 
 class AssetService:
@@ -80,13 +72,4 @@ class AssetService:
         return self.config if self.config is not None else load_config()
 
     def _providers(self, config: AppConfig, source: str | None = None) -> list[AssetProvider]:
-        providers: list[tuple[str, AssetProvider]] = [
-            ("manual", ManualProvider(config)),
-            ("binance", BinanceProvider(config)),
-            ("okx", OkxProvider(config)),
-            ("moomoo", MoomooProvider(config)),
-            ("longbridge", LongbridgeProvider(config)),
-            ("ibkr", IbkrProvider(config)),
-            ("onchain", OnchainProvider(config)),
-        ]
-        return [provider for provider_source, provider in providers if source in {None, provider_source}]
+        return [provider for _provider_source, provider in build_provider_entries(config, source=source)]

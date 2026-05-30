@@ -1,151 +1,27 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-SECRET_KEYS = {
-    "apikey",
-    "apisecret",
-    "appkey",
-    "appsecret",
-    "accesstoken",
-    "clientsecret",
-    "passphrase",
-    "secret",
-    "token",
-    "password",
-}
-
-
-class ConfigError(ValueError):
-    pass
-
-
-@dataclass(frozen=True)
-class BinanceAccountConfig:
-    id: str
-    label: str
-    apiKey: str
-    apiSecret: str
-    enabled: bool = True
-    environment: str = "production"
-
-
-@dataclass(frozen=True)
-class OkxAccountConfig:
-    id: str
-    label: str
-    apiKey: str
-    apiSecret: str
-    passphrase: str
-    enabled: bool = True
-    environment: str = "production"
-    domain: str = "https://www.okx.com"
-
-
-@dataclass(frozen=True)
-class MoomooAccountConfig:
-    id: str
-    label: str
-    host: str = "127.0.0.1"
-    port: int = 11111
-    trdMarket: str = "US"
-    securityFirm: str = "FUTUSECURITIES"
-    accountId: int | None = None
-    enabled: bool = True
-
-
-@dataclass(frozen=True)
-class LongbridgeAccountConfig:
-    id: str
-    label: str
-    appKey: str = ""
-    appSecret: str = ""
-    accessToken: str = ""
-    enabled: bool = True
-
-
-@dataclass(frozen=True)
-class IbkrAccountConfig:
-    id: str
-    label: str
-    token: str = ""
-    queryId: str = ""
-    baseUrl: str = "https://ndcdyn.interactivebrokers.com/AccountManagement/FlexWebService"
-    accountId: str | None = None
-    version: int = 3
-    statementRetries: int = 3
-    statementRetryDelaySeconds: float = 5.0
-    enabled: bool = True
-
-
-@dataclass(frozen=True)
-class OnchainIndexerConfig:
-    provider: str = "covalent"
-    apiKey: str = ""
-    baseUrl: str = "https://api.covalenthq.com/v1"
-
-
-@dataclass(frozen=True)
-class OnchainTokenConfig:
-    symbol: str
-    contractAddress: str
-    decimals: int
-    name: str | None = None
-    coinGeckoId: str | None = None
-
-
-@dataclass(frozen=True)
-class OnchainAddressConfig:
-    chain: str
-    address: str
-    label: str | None = None
-    tokens: list[OnchainTokenConfig] = field(default_factory=list)
-    rpcUrl: str | None = None
-    explorerApiUrl: str | None = None
-
-
-@dataclass(frozen=True)
-class OnchainAccountConfig:
-    id: str
-    label: str
-    addresses: list[OnchainAddressConfig]
-    enabled: bool = True
-
-
-@dataclass(frozen=True)
-class ManualAssetConfig:
-    symbol: str
-    quantity: float
-    currency: str
-    name: str | None = None
-
-
-@dataclass(frozen=True)
-class ManualAccountConfig:
-    id: str
-    label: str
-    category: str
-    assets: list[ManualAssetConfig]
-    enabled: bool = True
-
-
-@dataclass(frozen=True)
-class AppConfig:
-    baseCurrency: str = "USD"
-    rates: dict[str, float] = field(default_factory=lambda: {"USD": 1.0, "USDT": 1.0})
-    binanceAccounts: list[BinanceAccountConfig] = field(default_factory=list)
-    okxAccounts: list[OkxAccountConfig] = field(default_factory=list)
-    moomooAccounts: list[MoomooAccountConfig] = field(default_factory=list)
-    longbridgeAccounts: list[LongbridgeAccountConfig] = field(default_factory=list)
-    ibkrAccounts: list[IbkrAccountConfig] = field(default_factory=list)
-    onchainIndexer: OnchainIndexerConfig = field(default_factory=OnchainIndexerConfig)
-    onchainAccounts: list[OnchainAccountConfig] = field(default_factory=list)
-    manualAccounts: list[ManualAccountConfig] = field(default_factory=list)
+from asset_mcp.config.errors import ConfigError
+from asset_mcp.config.models import (
+    AppConfig,
+    BinanceAccountConfig,
+    IbkrAccountConfig,
+    LongbridgeAccountConfig,
+    ManualAccountConfig,
+    ManualAssetConfig,
+    MoomooAccountConfig,
+    OkxAccountConfig,
+    OnchainAccountConfig,
+    OnchainAddressConfig,
+    OnchainIndexerConfig,
+    OnchainTokenConfig,
+)
+from asset_mcp.config.validation import validate_unique_account_ids
 
 
 def default_config_path() -> Path:
@@ -337,37 +213,6 @@ def parse_config(raw: dict[str, Any]) -> AppConfig:
     )
     validate_unique_account_ids(config)
     return config
-
-
-def validate_unique_account_ids(config: AppConfig) -> None:
-    seen: dict[str, str] = {}
-    all_accounts = [
-        ("binance", config.binanceAccounts),
-        ("okx", config.okxAccounts),
-        ("moomoo", config.moomooAccounts),
-        ("longbridge", config.longbridgeAccounts),
-        ("ibkr", config.ibkrAccounts),
-        ("onchain", config.onchainAccounts),
-        ("manual", config.manualAccounts),
-    ]
-    for source, accounts in all_accounts:
-        for account in accounts:
-            if account.id in seen:
-                raise ConfigError(
-                    f"Duplicate account id '{account.id}' in {source}; already used by {seen[account.id]}."
-                )
-            seen[account.id] = source
-
-
-def redact_secrets(value: Any) -> Any:
-    if isinstance(value, dict):
-        return {
-            key: "***REDACTED***" if str(key).lower() in SECRET_KEYS else redact_secrets(item)
-            for key, item in value.items()
-        }
-    if isinstance(value, list):
-        return [redact_secrets(item) for item in value]
-    return value
 
 
 def _account_items(section: dict[str, Any], key: str) -> list[dict[str, Any]]:
