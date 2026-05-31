@@ -261,6 +261,21 @@ periodic net-worth snapshots instead of active polling.
 - `get_asset_dashboard_data`: chart-ready grouping data.
 - `health_check_sources`: per-account configuration and connection status.
 
+Provider calls are isolated with per-provider timeouts. When querying multiple
+providers, a slow or unavailable source is reported in `providerErrors` and the
+tool returns the data that was available with `partial: true`. SDK-backed
+providers that can block or emit native stdout run in a subprocess, so timed-out
+requests can be terminated without leaving the MCP server blocked or corrupting
+stdio transport.
+
+`providerErrors` entries include stable machine-readable codes:
+
+| code | Meaning | Retryable |
+| --- | --- | --- |
+| `provider_timeout` | The provider did not return before the per-provider timeout. | Yes |
+| `provider_exception` | The provider raised an exception. Raw errors are sanitized. | No |
+| `provider_exited` | A subprocess-isolated provider exited without returning a result. | Yes |
+
 Example prompt after connecting the MCP server:
 
 ```text

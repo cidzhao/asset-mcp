@@ -32,8 +32,11 @@ async def get_assets(
     """Return normalized assets, optionally filtered by source, accountId, or category."""
     service = AssetService()
     try:
-        assets = await service.get_assets(source=source, accountId=accountId, category=category)
-        return {"assets": assets, "count": len(assets)}
+        return await service.get_assets_payload(
+            source=source,
+            accountId=accountId,
+            category=category,
+        )
     except ConfigError as exc:
         return {"ok": False, "error": exc.__class__.__name__, "message": str(exc)}
     except Exception as exc:  # noqa: BLE001
