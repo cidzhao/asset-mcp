@@ -62,6 +62,18 @@ pip install asset-mcp
 asset-mcp init
 ```
 
+The base installation does not include the optional moomoo or Longbridge SDKs.
+Install those provider dependencies only when you need them:
+
+```bash
+pip install "asset-mcp[moomoo]"
+pip install "asset-mcp[longbridge]"
+pip install "asset-mcp[moomoo,longbridge]"
+```
+
+Binance, OKX, IBKR, on-chain wallets, and manual accounts work with the base
+installation.
+
 This creates a safe starter config at:
 
 ```text
