@@ -10,3 +10,4 @@ build/
 # Local secrets and personal account data
 config.local.yaml
 *.local.yaml
+!src/asset_mcp/templates/config.local.yaml

@@ -55,11 +55,32 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ## Install
 
-Clone the repository and install dependencies:
+Install the published package from PyPI:
+
+```bash
+pip install asset-mcp
+asset-mcp init
+```
+
+This creates a safe starter config at:
+
+```text
+~/.config/asset-mcp/config.local.yaml
+```
+
+Edit that file with your read-only API keys, enabled accounts, public wallet
+addresses, manual assets, and rates. Existing config files are not overwritten
+unless you run:
+
+```bash
+asset-mcp init --force
+```
+
+For local development, clone the repository and install dependencies:
 
 ```bash
 uv sync --extra dev --extra moomoo --extra longbridge
-cp config.example.yaml config.local.yaml
+uv run asset-mcp init --path config.local.yaml
 ```
 
 If you do not need moomoo or Longbridge support, omit those optional extras:
@@ -76,18 +97,18 @@ uv sync --extra dev --extra longbridge
 
 ## Configure
 
-Copy the example config and edit local secrets/account data:
+Initialize the config template and edit local secrets/account data:
 
 ```bash
-cp config.example.yaml config.local.yaml
+asset-mcp init
 ```
 
-`config.local.yaml` is ignored by git. Keep real API keys and personal balances
-only in that file.
+The default config path is `~/.config/asset-mcp/config.local.yaml`. Keep real API
+keys and personal balances only in your local config file.
 
 Use `config.example.yaml` as the source of truth for supported config fields.
-Copy it to `config.local.yaml`, then edit account credentials, enabled flags,
-manual assets, and currency rates as needed.
+The `asset-mcp init` command creates the same safe placeholder template; edit
+account credentials, enabled flags, manual assets, and currency rates as needed.
 
 Each account `id` must be unique and stable. This id appears in MCP responses
 and is used for filtering.
@@ -167,14 +188,19 @@ onchain:
 ## Run the MCP Server
 
 ```bash
-uv run asset-mcp
+asset-mcp
 ```
 
-By default the server reads `config.local.yaml` from the current directory. To use
-another path:
+By default the server reads config in this order:
+
+1. `ASSET_MCP_CONFIG`
+2. `config.local.yaml` in the current directory
+3. `~/.config/asset-mcp/config.local.yaml`
+
+To use another path:
 
 ```bash
-ASSET_MCP_CONFIG=/path/to/config.local.yaml uv run asset-mcp
+ASSET_MCP_CONFIG=/path/to/config.local.yaml asset-mcp
 ```
 
 ## MCP Client Configuration
@@ -185,18 +211,19 @@ Use stdio transport. Example client configuration:
 {
   "mcpServers": {
     "asset-mcp": {
-      "command": "uv",
-      "args": ["run", "asset-mcp"],
-      "cwd": "/absolute/path/to/calculate-assest",
-      "env": {
-        "ASSET_MCP_CONFIG": "/absolute/path/to/calculate-assest/config.local.yaml"
-      }
+      "command": "asset-mcp"
     }
   }
 }
 ```
 
-If your MCP client does not support `cwd`, pass an absolute config path through
+For Claude Code, after running `asset-mcp init`, add the server with:
+
+```bash
+claude mcp add asset-mcp -- asset-mcp
+```
+
+If you prefer a non-default config path, pass an absolute path through
 `ASSET_MCP_CONFIG`.
 
 ### IBKR setup

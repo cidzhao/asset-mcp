@@ -1,5 +1,5 @@
 from asset_mcp.config.errors import ConfigError
-from asset_mcp.config.loader import default_config_path, load_config, parse_config
+from asset_mcp.config.loader import default_config_path, default_user_config_path, load_config, parse_config
 from asset_mcp.config.models import (
     AppConfig,
     BinanceAccountConfig,
@@ -32,6 +32,7 @@ __all__ = [
     "OnchainIndexerConfig",
     "OnchainTokenConfig",
     "default_config_path",
+    "default_user_config_path",
     "load_config",
     "parse_config",
     "redact_secrets",

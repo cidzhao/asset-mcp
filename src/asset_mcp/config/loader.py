@@ -24,15 +24,27 @@ from asset_mcp.config.models import (
 from asset_mcp.config.validation import validate_unique_account_ids
 
 
+def default_user_config_path() -> Path:
+    return Path.home() / ".config" / "asset-mcp" / "config.local.yaml"
+
+
 def default_config_path() -> Path:
-    return Path(os.environ.get("ASSET_MCP_CONFIG", "config.local.yaml"))
+    env_path = os.environ.get("ASSET_MCP_CONFIG")
+    if env_path:
+        return Path(env_path)
+
+    local_config_path = Path("config.local.yaml")
+    if local_config_path.exists():
+        return local_config_path.resolve()
+
+    return default_user_config_path()
 
 
 def load_config(path: str | Path | None = None) -> AppConfig:
     config_path = Path(path) if path is not None else default_config_path()
     if not config_path.exists():
         raise ConfigError(
-            f"Config file not found: {config_path}. Copy config.example.yaml to config.local.yaml."
+            f"Config file not found: {config_path}. Run `asset-mcp init` to create one."
         )
 
     with config_path.open("r", encoding="utf-8") as fh:

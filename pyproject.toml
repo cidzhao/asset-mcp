@@ -25,7 +25,7 @@ dev = [
 ]
 
 [project.scripts]
-asset-mcp = "asset_mcp.server:main"
+asset-mcp = "asset_mcp.cli:main"
 
 [build-system]
 requires = ["hatchling"]

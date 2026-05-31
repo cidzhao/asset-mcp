@@ -1,6 +1,12 @@
 import pytest
 
-from asset_mcp.config import ConfigError, parse_config, redact_secrets
+from asset_mcp.config import (
+    ConfigError,
+    default_config_path,
+    load_config,
+    parse_config,
+    redact_secrets,
+)
 
 
 def test_parse_config_supports_multiple_accounts():
@@ -136,3 +142,42 @@ def test_redact_secrets_hides_nested_secret_values():
     assert redacted["nested"]["passphrase"] == "***REDACTED***"
     assert redacted["accessToken"] == "***REDACTED***"
     assert redacted["label"] == "visible"
+
+
+def test_default_config_path_prefers_env(monkeypatch, tmp_path):
+    env_config = tmp_path / "env.yaml"
+    local_config = tmp_path / "config.local.yaml"
+    env_config.write_text("baseCurrency: HKD\n", encoding="utf-8")
+    local_config.write_text("baseCurrency: CNY\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("ASSET_MCP_CONFIG", str(env_config))
+
+    assert default_config_path() == env_config
+    assert load_config().baseCurrency == "HKD"
+
+
+def test_default_config_path_prefers_local_config(monkeypatch, tmp_path):
+    user_config = tmp_path / "home" / ".config" / "asset-mcp" / "config.local.yaml"
+    local_config = tmp_path / "config.local.yaml"
+    user_config.parent.mkdir(parents=True)
+    user_config.write_text("baseCurrency: SGD\n", encoding="utf-8")
+    local_config.write_text("baseCurrency: CNY\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("ASSET_MCP_CONFIG", raising=False)
+
+    assert default_config_path() == local_config
+    assert load_config().baseCurrency == "CNY"
+
+
+def test_default_config_path_uses_user_config(monkeypatch, tmp_path):
+    home = tmp_path / "home"
+    user_config = home / ".config" / "asset-mcp" / "config.local.yaml"
+    user_config.parent.mkdir(parents=True)
+    user_config.write_text("baseCurrency: SGD\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.delenv("ASSET_MCP_CONFIG", raising=False)
+
+    assert default_config_path() == user_config
+    assert load_config().baseCurrency == "SGD"
