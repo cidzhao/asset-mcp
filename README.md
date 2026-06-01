@@ -43,7 +43,7 @@ asset-mcp init
 
 # 3. Edit the config: fill in credentials for at least one account
 #    and set its `enabled: true`. See "Configure" below for per-provider examples.
-$EDITOR ~/.config/asset-mcp/config.local.yaml
+vim ~/.config/asset-mcp/config.local.yaml
 
 # 4. Register the server with your MCP client
 claude mcp add asset-mcp -- asset-mcp
