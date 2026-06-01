@@ -54,7 +54,7 @@ codex mcp add asset-mcp -- asset-mcp
 #    Every enabled account should return `ok: true`.
 ```
 
-![Install and register](media/quick-start.gif)
+![Install and register](https://raw.githubusercontent.com/cidzhao/asset-mcp/main/media/quick-start.gif)
 
 The smallest working setup needs no API keys — a single manual cash account is
 enough to confirm the install:
