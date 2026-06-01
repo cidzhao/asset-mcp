@@ -6,6 +6,7 @@ from typing import Any
 
 import httpx
 
+from asset_mcp import __version__
 from asset_mcp.config import AppConfig, IbkrAccountConfig
 from asset_mcp.domain.models import AccountStatus, Asset, utc_now_iso
 from asset_mcp.providers.base import AssetProvider
@@ -246,7 +247,7 @@ class IbkrProvider(AssetProvider):
         response = await client.get(
             f"{account.baseUrl}{path}",
             params=params,
-            headers={"User-Agent": "asset-mcp/0.1.0"},
+            headers={"User-Agent": f"asset-mcp/{__version__}"},
         )
         response.raise_for_status()
         return self._parse_xml(response.content)
