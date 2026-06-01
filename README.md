@@ -1,5 +1,7 @@
 # Asset MCP
 
+[中文文档](https://github.com/cidzhao/asset-mcp/blob/main/README_zh.md)
+
 Read-only Python MCP server for aggregating personal assets across Binance, OKX,
 moomoo OpenD, Longbridge, IBKR, on-chain wallets, and manually configured
 accounts.
