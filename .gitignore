@@ -1,8 +1,10 @@
 __pycache__/
 *.py[cod]
+.DS_Store
 .pytest_cache/
 .ruff_cache/
 .venv/
+.claude/
 dist/
 build/
 *.egg-info/
@@ -11,3 +13,8 @@ build/
 config.local.yaml
 *.local.yaml
 !src/asset_mcp/templates/config.local.yaml
+
+# Demo recording intermediates (raw screen captures, VHS scratch)
+demo/_tmp/
+*.cast
+demo/
